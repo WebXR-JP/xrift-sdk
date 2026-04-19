@@ -1,0 +1,280 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #0f1117;
+  --color-surface: #1a1d27;
+  --color-border: #2a2d3a;
+  --color-text: #e4e4e7;
+  --color-text-muted: #8b8d98;
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-error: #ef4444;
+  --color-success: #22c55e;
+  --radius: 8px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 32px;
+}
+
+h1 span {
+  color: var(--color-primary);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--color-text-muted);
+}
+
+input[type='password'] {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type='password']:focus {
+  border-color: var(--color-primary);
+}
+
+/* Directory select */
+.dir-select-btn {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.dir-select-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+/* Config info */
+.config-info {
+  display: none;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+}
+
+.config-info.visible {
+  display: block;
+}
+
+.config-info.error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.config-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.config-badge.world {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-primary);
+}
+
+.config-badge.item {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
+
+.config-detail {
+  color: var(--color-text-muted);
+  line-height: 1.8;
+}
+
+.config-detail span {
+  color: var(--color-text);
+}
+
+/* File list */
+.file-list {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+}
+
+.file-item .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-item .size {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* Upload button */
+.upload-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Progress */
+.progress-area {
+  margin-top: 20px;
+  display: none;
+}
+
+.progress-area.visible {
+  display: block;
+}
+
+.progress-bar-container {
+  background: var(--color-surface);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.progress-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+}
+
+/* Result */
+.result-area {
+  margin-top: 24px;
+  display: none;
+}
+
+.result-area.visible {
+  display: block;
+}
+
+.result-area pre {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.result-area.error pre {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.result-area.success pre {
+  border-color: var(--color-success);
+}
+
+.result-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.result-area.error .result-label {
+  color: var(--color-error);
+}
+
+.result-area.success .result-label {
+  color: var(--color-success);
+}
+
+/* Utility */
+.hidden {
+  display: none;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
