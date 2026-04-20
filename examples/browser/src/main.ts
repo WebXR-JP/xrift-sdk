@@ -2,20 +2,15 @@ import {
   XriftClient,
   getMimeType,
   parseWorldConfig,
-  parseItemConfig,
   filterFiles,
-  type XriftConfig,
   type XriftWorldConfig,
-  type XriftItemConfig,
   type UploadFile,
   type UploadProgress,
-  type WorldUploadOptions,
-  type ItemUploadOptions,
 } from '@xrift/sdk';
 import './style.css';
 
 // --- State ---
-let config: XriftConfig | null = null;
+let config: XriftWorldConfig | null = null;
 let distFiles: File[] = [];
 let allFiles: File[] = [];
 
@@ -92,13 +87,7 @@ function handleDirectorySelect(fileList: FileList) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const json = reader.result as string;
-      const raw = JSON.parse(json);
-      if (raw.world) {
-        config = parseWorldConfig(json);
-      } else {
-        config = parseItemConfig(json);
-      }
+      config = parseWorldConfig(reader.result as string);
       processConfig();
     } catch (err) {
       showConfigError(
@@ -145,15 +134,13 @@ function processConfig() {
 function showConfigInfo(distDir: string) {
   if (!config) return;
   const info = document.getElementById('config-info')!;
-  const title = config.name;
 
   info.className = 'config-info visible';
   info.innerHTML = `
-    <div class="config-badge ${config.type}">${config.type === 'world' ? 'ワールド' : 'アイテム'}</div>
-    <div class="config-detail"><span>タイトル:</span> ${escapeHtml(title)}</div>
+    <div class="config-badge world">ワールド</div>
+    <div class="config-detail"><span>タイトル:</span> ${escapeHtml(config.name)}</div>
     <div class="config-detail"><span>distDir:</span> ${escapeHtml(distDir || '.')}</div>
     <div class="config-detail"><span>ファイル数:</span> ${distFiles.length} 件</div>
-    <div class="config-detail"><span>除外パターン:</span> ${config.ignore.length} 件</div>
   `;
 
   document.getElementById('file-section')!.classList.remove('hidden');
@@ -236,32 +223,16 @@ async function handleUpload() {
     };
 
     const client = new XriftClient({ token });
-
-    let result: unknown;
-    if (config.type === 'world') {
-      const wc = config as XriftWorldConfig;
-      const options: WorldUploadOptions = {
-        name: wc.name,
-        description: wc.description,
-        thumbnailPath: wc.thumbnailPath,
-        physics: wc.physics,
-        camera: wc.camera,
-        permissions: wc.permissions,
-        outputBufferType: wc.outputBufferType,
-        onProgress,
-      };
-      result = await client.worlds.upload(uploadFiles, options);
-    } else {
-      const ic = config as XriftItemConfig;
-      const options: ItemUploadOptions = {
-        name: ic.name,
-        description: ic.description,
-        thumbnailPath: ic.thumbnailPath,
-        permissions: ic.permissions,
-        onProgress,
-      };
-      result = await client.items.upload(uploadFiles, options);
-    }
+    const result = await client.worlds.upload(uploadFiles, {
+      name: config.name,
+      description: config.description,
+      thumbnailPath: config.thumbnailPath,
+      physics: config.physics,
+      camera: config.camera,
+      permissions: config.permissions,
+      outputBufferType: config.outputBufferType,
+      onProgress,
+    });
 
     progressBar.style.width = '100%';
     progressText.textContent = '完了';
