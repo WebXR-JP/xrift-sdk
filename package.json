@@ -1,6 +1,6 @@
 {
   "name": "@xrift/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "XRift SDK - Universal API client for XRift platform",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
@@ -15,6 +15,16 @@
       "require": {
         "types": "./dist/cjs/index.d.cts",
         "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/esm/node/index.d.ts",
+        "default": "./dist/esm/node/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/node/index.d.cts",
+        "default": "./dist/cjs/node/index.cjs"
       }
     }
   },

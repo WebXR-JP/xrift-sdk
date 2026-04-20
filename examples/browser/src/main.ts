@@ -1,45 +1,18 @@
 import {
   XriftClient,
   getMimeType,
+  parseWorldConfig,
+  filterFiles,
+  type XriftWorldConfig,
   type UploadFile,
   type UploadProgress,
-  type WorldUploadOptions,
-  type ItemUploadOptions,
 } from '@xrift/sdk';
 import './style.css';
 
-// --- Types ---
-interface XriftConfig {
-  world?: {
-    distDir: string;
-    title?: string;
-    description?: string;
-    thumbnailPath?: string;
-    buildCommand?: string;
-    ignore?: string[];
-    physics?: { gravity?: number; allowInfiniteJump?: boolean };
-    camera?: { near?: number; far?: number };
-    permissions?: { allowedDomains?: string[]; allowedCodeRules?: string[] };
-    outputBufferType?: 'UnsignedByteType' | 'HalfFloatType' | 'FloatType';
-  };
-  item?: {
-    distDir: string;
-    title?: string;
-    description?: string;
-    thumbnailPath?: string;
-    buildCommand?: string;
-    ignore?: string[];
-    permissions?: { allowedDomains?: string[]; allowedCodeRules?: string[] };
-  };
-}
-
 // --- State ---
-let config: XriftConfig | null = null;
-let projectType: 'world' | 'item' | null = null;
+let config: XriftWorldConfig | null = null;
 let distFiles: File[] = [];
 let allFiles: File[] = [];
-
-const DEFAULT_IGNORE_PATTERNS = ['__federation_shared_*.js'];
 
 // --- Render ---
 function render() {
@@ -98,7 +71,6 @@ function bindEvents() {
 function handleDirectorySelect(fileList: FileList) {
   allFiles = Array.from(fileList);
   config = null;
-  projectType = null;
   distFiles = [];
 
   // xrift.json を探す
@@ -115,10 +87,12 @@ function handleDirectorySelect(fileList: FileList) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      config = JSON.parse(reader.result as string) as XriftConfig;
+      config = parseWorldConfig(reader.result as string);
       processConfig();
-    } catch {
-      showConfigError('xrift.json のパースに失敗しました');
+    } catch (err) {
+      showConfigError(
+        err instanceof Error ? err.message : 'xrift.json のパースに失敗しました',
+      );
     }
   };
   reader.readAsText(configFile);
@@ -127,56 +101,46 @@ function handleDirectorySelect(fileList: FileList) {
 function processConfig() {
   if (!config) return;
 
-  if (config.world) {
-    projectType = 'world';
-  } else if (config.item) {
-    projectType = 'item';
-  } else {
-    showConfigError('xrift.json に world または item の設定がありません');
-    return;
-  }
-
-  const typeConfig = projectType === 'world' ? config.world! : config.item!;
-  const distDir = normalizePath(typeConfig.distDir);
+  const distDir = config.distDir;
 
   // distDir 配下のファイルを抽出
   // webkitRelativePath: "projectRoot/path/to/file"
   const rootPrefix = allFiles[0]?.webkitRelativePath.split('/')[0];
   const distPrefix = distDir ? `${rootPrefix}/${distDir}/` : `${rootPrefix}/`;
 
-  const ignorePatterns = [...DEFAULT_IGNORE_PATTERNS, ...(typeConfig.ignore ?? [])];
-
-  distFiles = allFiles.filter((f) => {
+  const candidateFiles = allFiles.filter((f) => {
     const p = f.webkitRelativePath;
     if (!p.startsWith(distPrefix)) return false;
     const relativePath = p.slice(distPrefix.length);
-    if (!relativePath) return false; // ディレクトリ自体は除外
-    return !matchesIgnorePattern(relativePath, ignorePatterns);
+    return !!relativePath;
   });
 
-  showConfigInfo(typeConfig, distDir);
+  // filterFiles で ignore 適用
+  const candidatePaths = candidateFiles.map(
+    (f) => f.webkitRelativePath.slice(distPrefix.length),
+  );
+  const filteredPaths = filterFiles(candidatePaths, config.ignore);
+  const filteredSet = new Set(filteredPaths);
+
+  distFiles = candidateFiles.filter((f) =>
+    filteredSet.has(f.webkitRelativePath.slice(distPrefix.length)),
+  );
+
+  showConfigInfo(distDir);
   renderFileList();
   updateUploadBtn();
 }
 
-function showConfigInfo(
-  typeConfig: NonNullable<XriftConfig['world']> | NonNullable<XriftConfig['item']>,
-  distDir: string,
-) {
+function showConfigInfo(distDir: string) {
+  if (!config) return;
   const info = document.getElementById('config-info')!;
-  const title = typeConfig.title ?? '(未設定)';
-  const ignoreCount = [
-    ...DEFAULT_IGNORE_PATTERNS,
-    ...(typeConfig.ignore ?? []),
-  ].length;
 
   info.className = 'config-info visible';
   info.innerHTML = `
-    <div class="config-badge ${projectType}">${projectType === 'world' ? 'ワールド' : 'アイテム'}</div>
-    <div class="config-detail"><span>タイトル:</span> ${escapeHtml(title)}</div>
-    <div class="config-detail"><span>distDir:</span> ${escapeHtml(distDir)}</div>
+    <div class="config-badge world">ワールド</div>
+    <div class="config-detail"><span>タイトル:</span> ${escapeHtml(config.name)}</div>
+    <div class="config-detail"><span>distDir:</span> ${escapeHtml(distDir || '.')}</div>
     <div class="config-detail"><span>ファイル数:</span> ${distFiles.length} 件</div>
-    <div class="config-detail"><span>除外パターン:</span> ${ignoreCount} 件</div>
   `;
 
   document.getElementById('file-section')!.classList.remove('hidden');
@@ -222,9 +186,8 @@ function updateUploadBtn() {
 // --- Upload ---
 async function handleUpload() {
   const token = (document.getElementById('token') as HTMLInputElement).value.trim();
-  if (!config || !projectType) return;
+  if (!config) return;
 
-  const typeConfig = projectType === 'world' ? config.world! : config.item!;
   const prefix = getDistPrefix();
 
   const btn = document.getElementById('upload-btn') as HTMLButtonElement;
@@ -260,33 +223,16 @@ async function handleUpload() {
     };
 
     const client = new XriftClient({ token });
-    const name = typeConfig.title ?? 'Untitled';
-
-    let result: unknown;
-    if (projectType === 'world') {
-      const wc = config.world!;
-      const options: WorldUploadOptions = {
-        name,
-        description: wc.description,
-        thumbnailPath: wc.thumbnailPath,
-        physics: wc.physics,
-        camera: wc.camera,
-        permissions: wc.permissions,
-        outputBufferType: wc.outputBufferType,
-        onProgress,
-      };
-      result = await client.worlds.upload(uploadFiles, options);
-    } else {
-      const ic = config.item!;
-      const options: ItemUploadOptions = {
-        name,
-        description: ic.description,
-        thumbnailPath: ic.thumbnailPath,
-        permissions: ic.permissions,
-        onProgress,
-      };
-      result = await client.items.upload(uploadFiles, options);
-    }
+    const result = await client.worlds.upload(uploadFiles, {
+      name: config.name,
+      description: config.description,
+      thumbnailPath: config.thumbnailPath,
+      physics: config.physics,
+      camera: config.camera,
+      permissions: config.permissions,
+      outputBufferType: config.outputBufferType,
+      onProgress,
+    });
 
     progressBar.style.width = '100%';
     progressText.textContent = '完了';
@@ -314,30 +260,13 @@ function showResult(data: unknown, isError: boolean) {
 
 // --- Path helpers ---
 function getDistPrefix(): string {
-  const typeConfig = projectType === 'world' ? config!.world! : config!.item!;
-  const distDir = normalizePath(typeConfig.distDir);
+  if (!config) return '';
+  const distDir = config.distDir;
   const rootPrefix = allFiles[0]?.webkitRelativePath.split('/')[0];
   return distDir ? `${rootPrefix}/${distDir}/` : `${rootPrefix}/`;
 }
 
-// --- Ignore pattern ---
-function matchesIgnorePattern(filePath: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => {
-    const regex = new RegExp(
-      '^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$',
-    );
-    // ファイル名だけでもマッチを試す（CLI の minimatch と同様）
-    const fileName = filePath.split('/').pop() ?? filePath;
-    return regex.test(filePath) || regex.test(fileName);
-  });
-}
-
 // --- Utils ---
-/** "./dist" → "dist", "dist/" → "dist", "." → "" */
-function normalizePath(p: string): string {
-  return p.replace(/^\.\//, '').replace(/\/+$/, '').replace(/^\.?$/, '');
-}
-
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

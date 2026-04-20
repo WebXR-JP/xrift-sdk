@@ -2,6 +2,19 @@
 export { XriftClient } from './client.js';
 export type { XriftClientConfig } from './client.js';
 
+// Config
+export {
+  parseWorldConfig,
+  parseItemConfig,
+  filterFiles,
+  DEFAULT_IGNORE_PATTERNS,
+} from './config.js';
+export type {
+  XriftConfig,
+  XriftWorldConfig,
+  XriftItemConfig,
+} from './config.js';
+
 // Hash
 export { calculateContentHash } from './hash.js';
 
