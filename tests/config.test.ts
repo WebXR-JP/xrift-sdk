@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  parseXriftConfig,
+  parseWorldConfig,
+  parseItemConfig,
   filterFiles,
   DEFAULT_IGNORE_PATTERNS,
 } from '../src/config.js';
 
-describe('parseXriftConfig', () => {
+describe('parseWorldConfig', () => {
   it('should parse a world config', () => {
     const json = JSON.stringify({
       world: {
@@ -20,39 +21,17 @@ describe('parseXriftConfig', () => {
       },
     });
 
-    const config = parseXriftConfig(json);
+    const config = parseWorldConfig(json);
     expect(config.type).toBe('world');
     expect(config.distDir).toBe('dist');
     expect(config.name).toBe('My World');
     expect(config.description).toBe('A test world');
     expect(config.thumbnailPath).toBe('thumb.png');
     expect(config.ignore).toEqual(DEFAULT_IGNORE_PATTERNS);
-
-    if (config.type === 'world') {
-      expect(config.physics).toEqual({ gravity: 9.8 });
-      expect(config.camera).toEqual({ near: 0.1, far: 1000 });
-      expect(config.permissions).toEqual({ allowedDomains: ['example.com'] });
-      expect(config.outputBufferType).toBe('HalfFloatType');
-    }
-  });
-
-  it('should parse an item config', () => {
-    const json = JSON.stringify({
-      item: {
-        distDir: 'build',
-        title: 'My Item',
-        permissions: { allowedCodeRules: ['rule1'] },
-      },
-    });
-
-    const config = parseXriftConfig(json);
-    expect(config.type).toBe('item');
-    expect(config.distDir).toBe('build');
-    expect(config.name).toBe('My Item');
-
-    if (config.type === 'item') {
-      expect(config.permissions).toEqual({ allowedCodeRules: ['rule1'] });
-    }
+    expect(config.physics).toEqual({ gravity: 9.8 });
+    expect(config.camera).toEqual({ near: 0.1, far: 1000 });
+    expect(config.permissions).toEqual({ allowedDomains: ['example.com'] });
+    expect(config.outputBufferType).toBe('HalfFloatType');
   });
 
   it('should default name to "Untitled" when title is missing', () => {
@@ -60,7 +39,7 @@ describe('parseXriftConfig', () => {
       world: { distDir: 'dist' },
     });
 
-    const config = parseXriftConfig(json);
+    const config = parseWorldConfig(json);
     expect(config.name).toBe('Untitled');
   });
 
@@ -69,7 +48,7 @@ describe('parseXriftConfig', () => {
       world: { distDir: 'dist', title: '' },
     });
 
-    const config = parseXriftConfig(json);
+    const config = parseWorldConfig(json);
     expect(config.name).toBe('Untitled');
   });
 
@@ -84,7 +63,7 @@ describe('parseXriftConfig', () => {
 
     for (const { input, expected } of cases) {
       const json = JSON.stringify({ world: { distDir: input } });
-      const config = parseXriftConfig(json);
+      const config = parseWorldConfig(json);
       expect(config.distDir).toBe(expected);
     }
   });
@@ -97,7 +76,7 @@ describe('parseXriftConfig', () => {
       },
     });
 
-    const config = parseXriftConfig(json);
+    const config = parseWorldConfig(json);
     expect(config.ignore).toEqual([
       '__federation_shared_*.js',
       '*.map',
@@ -113,7 +92,7 @@ describe('parseXriftConfig', () => {
       },
     });
 
-    const config = parseXriftConfig(json);
+    const config = parseWorldConfig(json);
     expect(config.ignore).toEqual([
       '__federation_shared_*.js',
       'extra.txt',
@@ -121,42 +100,83 @@ describe('parseXriftConfig', () => {
   });
 
   it('should throw on invalid JSON', () => {
-    expect(() => parseXriftConfig('not json')).toThrow('Invalid JSON');
+    expect(() => parseWorldConfig('not json')).toThrow('Invalid JSON');
   });
 
   it('should throw when JSON is not an object', () => {
-    expect(() => parseXriftConfig('"string"')).toThrow('must be a JSON object');
+    expect(() => parseWorldConfig('"string"')).toThrow('must be a JSON object');
   });
 
-  it('should throw when neither world nor item is present', () => {
-    expect(() => parseXriftConfig('{}')).toThrow(
-      'must contain a "world" or "item" key',
+  it('should throw when "world" key is missing', () => {
+    expect(() => parseWorldConfig('{}')).toThrow(
+      'does not contain a "world" key',
     );
   });
 
-  it('should throw when both world and item are present', () => {
-    const json = JSON.stringify({
-      world: { distDir: 'dist' },
-      item: { distDir: 'dist' },
-    });
-    expect(() => parseXriftConfig(json)).toThrow(
-      'must contain either "world" or "item", not both',
+  it('should throw when "world" key is missing (item-only config)', () => {
+    const json = JSON.stringify({ item: { distDir: 'dist' } });
+    expect(() => parseWorldConfig(json)).toThrow(
+      'does not contain a "world" key',
     );
   });
 
   it('should throw when distDir is missing', () => {
     const json = JSON.stringify({ world: {} });
-    expect(() => parseXriftConfig(json)).toThrow('"world.distDir" is required');
+    expect(() => parseWorldConfig(json)).toThrow('"world.distDir" is required');
   });
 
   it('should throw when world value is not an object', () => {
     const json = JSON.stringify({ world: 'not-object' });
-    expect(() => parseXriftConfig(json)).toThrow('"world" must be an object');
+    expect(() => parseWorldConfig(json)).toThrow('"world" must be an object');
+  });
+});
+
+describe('parseItemConfig', () => {
+  it('should parse an item config', () => {
+    const json = JSON.stringify({
+      item: {
+        distDir: 'build',
+        title: 'My Item',
+        permissions: { allowedCodeRules: ['rule1'] },
+      },
+    });
+
+    const config = parseItemConfig(json);
+    expect(config.type).toBe('item');
+    expect(config.distDir).toBe('build');
+    expect(config.name).toBe('My Item');
+    expect(config.permissions).toEqual({ allowedCodeRules: ['rule1'] });
   });
 
-  it('should throw when item distDir is missing', () => {
+  it('should throw on invalid JSON', () => {
+    expect(() => parseItemConfig('not json')).toThrow('Invalid JSON');
+  });
+
+  it('should throw when JSON is not an object', () => {
+    expect(() => parseItemConfig('"string"')).toThrow('must be a JSON object');
+  });
+
+  it('should throw when "item" key is missing', () => {
+    expect(() => parseItemConfig('{}')).toThrow(
+      'does not contain an "item" key',
+    );
+  });
+
+  it('should throw when "item" key is missing (world-only config)', () => {
+    const json = JSON.stringify({ world: { distDir: 'dist' } });
+    expect(() => parseItemConfig(json)).toThrow(
+      'does not contain an "item" key',
+    );
+  });
+
+  it('should throw when distDir is missing', () => {
     const json = JSON.stringify({ item: {} });
-    expect(() => parseXriftConfig(json)).toThrow('"item.distDir" is required');
+    expect(() => parseItemConfig(json)).toThrow('"item.distDir" is required');
+  });
+
+  it('should throw when item value is not an object', () => {
+    const json = JSON.stringify({ item: 'not-object' });
+    expect(() => parseItemConfig(json)).toThrow('"item" must be an object');
   });
 });
 

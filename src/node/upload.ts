@@ -1,8 +1,7 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { XriftClient } from '../client.js';
-import { parseXriftConfig, filterFiles } from '../config.js';
-import type { XriftWorldConfig, XriftItemConfig } from '../config.js';
+import { parseWorldConfig, parseItemConfig, filterFiles } from '../config.js';
 import { XriftSdkError } from '../errors.js';
 import { getMimeType } from '../utils/mime.js';
 import type {
@@ -87,15 +86,13 @@ async function buildUploadFiles(
   return uploadFiles;
 }
 
-async function readXriftConfig(dirPath: string) {
+async function readConfigJson(dirPath: string): Promise<string> {
   const configPath = join(dirPath, 'xrift.json');
-  let raw: string;
   try {
-    raw = await readFile(configPath, 'utf-8');
+    return await readFile(configPath, 'utf-8');
   } catch {
     throw new XriftSdkError(`xrift.json not found: ${configPath}`);
   }
-  return parseXriftConfig(raw);
 }
 
 // --- Public API ---
@@ -104,13 +101,8 @@ export async function uploadWorldFromDirectory(
   dirPath: string,
   options: WorldUploadFromDirectoryOptions,
 ): Promise<WorldUploadResult> {
-  const config = await readXriftConfig(dirPath);
-  if (config.type !== 'world') {
-    throw new XriftSdkError(
-      'xrift.json does not contain a "world" configuration',
-    );
-  }
-  const wc = config as XriftWorldConfig;
+  const raw = await readConfigJson(dirPath);
+  const wc = parseWorldConfig(raw);
 
   const uploadFiles = await buildUploadFiles(
     dirPath,
@@ -141,13 +133,8 @@ export async function uploadItemFromDirectory(
   dirPath: string,
   options: ItemUploadFromDirectoryOptions,
 ): Promise<ItemUploadResult> {
-  const config = await readXriftConfig(dirPath);
-  if (config.type !== 'item') {
-    throw new XriftSdkError(
-      'xrift.json does not contain an "item" configuration',
-    );
-  }
-  const ic = config as XriftItemConfig;
+  const raw = await readConfigJson(dirPath);
+  const ic = parseItemConfig(raw);
 
   const uploadFiles = await buildUploadFiles(
     dirPath,

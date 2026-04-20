@@ -40,10 +40,7 @@ export const DEFAULT_IGNORE_PATTERNS = ['__federation_shared_*.js'];
 
 // --- Functions ---
 
-/**
- * xrift.json の JSON 文字列をパースして正規化された設定オブジェクトを返す。
- */
-export function parseXriftConfig(json: string): XriftConfig {
+function parseJson(json: string): Record<string, unknown> {
   let raw: unknown;
   try {
     raw = JSON.parse(json);
@@ -55,28 +52,23 @@ export function parseXriftConfig(json: string): XriftConfig {
     throw new XriftSdkError('xrift.json must be a JSON object');
   }
 
-  const obj = raw as Record<string, unknown>;
+  return raw as Record<string, unknown>;
+}
 
-  if (obj.world && obj.item) {
+/**
+ * xrift.json の JSON 文字列をパースしてワールド設定を返す。
+ * "world" キーが存在しない場合はエラーをスローする。
+ */
+export function parseWorldConfig(json: string): XriftWorldConfig {
+  const root = parseJson(json);
+
+  if (!root.world) {
     throw new XriftSdkError(
-      'xrift.json must contain either "world" or "item", not both',
+      'xrift.json does not contain a "world" key',
     );
   }
 
-  if (obj.world) {
-    return parseWorldConfig(obj.world);
-  }
-
-  if (obj.item) {
-    return parseItemConfig(obj.item);
-  }
-
-  throw new XriftSdkError(
-    'xrift.json must contain a "world" or "item" key',
-  );
-}
-
-function parseWorldConfig(raw: unknown): XriftWorldConfig {
+  const raw = root.world;
   if (typeof raw !== 'object' || raw === null) {
     throw new XriftSdkError('"world" must be an object');
   }
@@ -103,7 +95,20 @@ function parseWorldConfig(raw: unknown): XriftWorldConfig {
   };
 }
 
-function parseItemConfig(raw: unknown): XriftItemConfig {
+/**
+ * xrift.json の JSON 文字列をパースしてアイテム設定を返す。
+ * "item" キーが存在しない場合はエラーをスローする。
+ */
+export function parseItemConfig(json: string): XriftItemConfig {
+  const root = parseJson(json);
+
+  if (!root.item) {
+    throw new XriftSdkError(
+      'xrift.json does not contain an "item" key',
+    );
+  }
+
+  const raw = root.item;
   if (typeof raw !== 'object' || raw === null) {
     throw new XriftSdkError('"item" must be an object');
   }

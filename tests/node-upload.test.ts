@@ -145,7 +145,7 @@ describe('uploadWorldFromDirectory', () => {
 
     await expect(
       uploadWorldFromDirectory(tmpDir, { token: 'tok' }),
-    ).rejects.toThrow('does not contain a "world" configuration');
+    ).rejects.toThrow('does not contain a "world" key');
   });
 
   it('should throw when distDir does not exist', async () => {
@@ -221,6 +221,6 @@ describe('uploadItemFromDirectory', () => {
 
     await expect(
       uploadItemFromDirectory(tmpDir, { token: 'tok' }),
-    ).rejects.toThrow('does not contain an "item" configuration');
+    ).rejects.toThrow('does not contain an "item" key');
   });
 });

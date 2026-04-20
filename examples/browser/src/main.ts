@@ -1,7 +1,8 @@
 import {
   XriftClient,
   getMimeType,
-  parseXriftConfig,
+  parseWorldConfig,
+  parseItemConfig,
   filterFiles,
   type XriftConfig,
   type XriftWorldConfig,
@@ -91,7 +92,13 @@ function handleDirectorySelect(fileList: FileList) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      config = parseXriftConfig(reader.result as string);
+      const json = reader.result as string;
+      const raw = JSON.parse(json);
+      if (raw.world) {
+        config = parseWorldConfig(json);
+      } else {
+        config = parseItemConfig(json);
+      }
       processConfig();
     } catch (err) {
       showConfigError(

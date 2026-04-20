@@ -4,7 +4,8 @@ export type { XriftClientConfig } from './client.js';
 
 // Config
 export {
-  parseXriftConfig,
+  parseWorldConfig,
+  parseItemConfig,
   filterFiles,
   DEFAULT_IGNORE_PATTERNS,
 } from './config.js';
