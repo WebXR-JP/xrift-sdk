@@ -15,12 +15,12 @@ import type { UploadFile } from '../types/common.js';
 export class ItemsApi {
   constructor(private readonly http: HttpClient) {}
 
-  async create(): Promise<CreateItemResponse> {
+  private async create(): Promise<CreateItemResponse> {
     const response = await this.http.post<CreateItemResponse>(ITEMS_BASE_PATH, {});
     return response.data;
   }
 
-  async getUploadUrls(
+  private async getUploadUrls(
     itemId: string,
     request: ItemUploadUrlsRequest,
   ): Promise<ItemUploadUrlsResponse> {
@@ -31,7 +31,7 @@ export class ItemsApi {
     return response.data;
   }
 
-  async complete(
+  private async complete(
     itemId: string,
     versionId: string,
   ): Promise<CompleteItemUploadResponse> {

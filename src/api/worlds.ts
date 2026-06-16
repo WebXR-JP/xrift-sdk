@@ -15,12 +15,12 @@ import type { UploadFile } from '../types/common.js';
 export class WorldsApi {
   constructor(private readonly http: HttpClient) {}
 
-  async create(): Promise<CreateWorldResponse> {
+  private async create(): Promise<CreateWorldResponse> {
     const response = await this.http.post<CreateWorldResponse>(WORLDS_BASE_PATH, {});
     return response.data;
   }
 
-  async getUploadUrls(
+  private async getUploadUrls(
     worldId: string,
     request: WorldUploadUrlsRequest,
   ): Promise<WorldUploadUrlsResponse> {
@@ -31,7 +31,7 @@ export class WorldsApi {
     return response.data;
   }
 
-  async complete(
+  private async complete(
     worldId: string,
     versionId: string,
   ): Promise<CompleteWorldUploadResponse> {
