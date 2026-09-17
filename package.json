@@ -38,6 +38,7 @@
     "build": "npm run build:esm && npm run build:cjs",
     "build:esm": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/rename-cjs.js",
+    "type-check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
@@ -53,6 +54,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.3",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
