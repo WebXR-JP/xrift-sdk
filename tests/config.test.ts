@@ -216,6 +216,50 @@ describe('filterFiles', () => {
     expect(result).toEqual(['a.js', 'b.css']);
   });
 
+  it('should match top-level files with a globstar prefix', () => {
+    // `**/` は0階層以上にマッチする。ここが `/` を要求すると
+    // xrift.json の ignore が丸ごと無視される
+    const files = ['rapier-abc.js', 'nested/rapier-def.js', 'keep.js'];
+
+    const result = filterFiles(files, ['**/rapier-*.js']);
+    expect(result).toEqual(['keep.js']);
+  });
+
+  it('should match a globstar-prefixed path pattern at any depth', () => {
+    const files = [
+      'assets/icon.png',
+      'assets/nested/icon.png',
+      'other/icon.png',
+    ];
+
+    const result = filterFiles(files, ['**/assets/**']);
+    expect(result).toEqual(['other/icon.png']);
+  });
+
+  it('should not let a single asterisk swallow the globstar prefix', () => {
+    const files = ['a/b/deep.txt', 'shallow.txt'];
+
+    const result = filterFiles(files, ['**/*.txt']);
+    expect(result).toEqual([]);
+  });
+
+  it('should treat a question mark as a literal character', () => {
+    // `?` を正規表現の量指定子として解釈すると `chunk.js` が巻き添えで除外され、
+    // 必要なファイルがアップロードから漏れる
+    const files = ['chunk.js', 'chunk-a.js'];
+
+    const result = filterFiles(files, ['chunk-?.js']);
+    expect(result).toEqual(['chunk.js', 'chunk-a.js']);
+  });
+
+  it('should match Windows-style separators', () => {
+    // Windows の path.relative() はバックスラッシュ区切りを返す
+    const files = ['assets\\icon.png', 'assets\\nested\\icon.png', 'keep.png'];
+
+    const result = filterFiles(files, ['**/assets/**']);
+    expect(result).toEqual(['keep.png']);
+  });
+
   it('should return all files when patterns is empty', () => {
     const files = ['a.js', 'b.css'];
     const result = filterFiles(files, []);
