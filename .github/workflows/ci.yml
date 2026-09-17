@@ -25,3 +25,6 @@ jobs:
 
       # ESM/CJS の両方を出力できることまで確認する
       - run: npm run build
+
+      # 出力が実際に読み込めるか（改名と指定子のズレは型チェックでは出ない）
+      - run: npm run smoke

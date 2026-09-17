@@ -1,6 +1,6 @@
 {
   "name": "@xrift/sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "XRift SDK - Universal API client for XRift platform",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
@@ -39,6 +39,7 @@
     "build:esm": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/rename-cjs.js",
     "type-check": "tsc --noEmit -p tsconfig.json",
+    "smoke": "node scripts/smoke-test-package.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
