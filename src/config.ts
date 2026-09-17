@@ -165,13 +165,25 @@ export function filterFiles(
   );
 }
 
+/**
+ * ignore パターンを正規表現に変換する。
+ *
+ * globstar 接頭辞（アスタリスク2つ + スラッシュ）は「0階層以上のディレクトリ」を表す。
+ * ここを素朴に `.*` へ置き換えると `/` が1つ以上必要になってしまい、
+ * トップレベルのファイルに永久にマッチしなくなる。
+ */
+function globToRegExp(pattern: string): RegExp {
+  const source = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .split('**/')
+    .map((segment) => segment.replace(/\*/g, '.*'))
+    .join('(?:.*/)?');
+  return new RegExp('^' + source + '$');
+}
+
 function matchesIgnorePattern(filePath: string, patterns: string[]): boolean {
   return patterns.some((pattern) => {
-    const regex = new RegExp(
-      '^' +
-        pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') +
-        '$',
-    );
+    const regex = globToRegExp(pattern);
     const fileName = filePath.split('/').pop() ?? filePath;
     return regex.test(filePath) || regex.test(fileName);
   });
