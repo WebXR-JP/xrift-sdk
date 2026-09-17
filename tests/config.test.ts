@@ -243,6 +243,23 @@ describe('filterFiles', () => {
     expect(result).toEqual([]);
   });
 
+  it('should treat a question mark as a literal character', () => {
+    // `?` を正規表現の量指定子として解釈すると `chunk.js` が巻き添えで除外され、
+    // 必要なファイルがアップロードから漏れる
+    const files = ['chunk.js', 'chunk-a.js'];
+
+    const result = filterFiles(files, ['chunk-?.js']);
+    expect(result).toEqual(['chunk.js', 'chunk-a.js']);
+  });
+
+  it('should match Windows-style separators', () => {
+    // Windows の path.relative() はバックスラッシュ区切りを返す
+    const files = ['assets\\icon.png', 'assets\\nested\\icon.png', 'keep.png'];
+
+    const result = filterFiles(files, ['**/assets/**']);
+    expect(result).toEqual(['keep.png']);
+  });
+
   it('should return all files when patterns is empty', () => {
     const files = ['a.js', 'b.css'];
     const result = filterFiles(files, []);

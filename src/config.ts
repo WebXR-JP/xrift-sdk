@@ -160,9 +160,20 @@ export function filterFiles(
   filePaths: string[],
   ignorePatterns: string[],
 ): string[] {
+  const patterns = ignorePatterns.map(normalizeSeparators);
   return filePaths.filter(
-    (filePath) => !matchesIgnorePattern(filePath, ignorePatterns),
+    (filePath) => !matchesIgnorePattern(normalizeSeparators(filePath), patterns),
   );
+}
+
+/**
+ * パス区切りを `/` に揃える。
+ *
+ * Windows では `path.relative()` が `assets\\icon.png` のようなバックスラッシュ区切りを返すが、
+ * ignore パターンは `/` 区切りで書かれるため、揃えないと一致しない。
+ */
+function normalizeSeparators(p: string): string {
+  return p.replace(/\\/g, '/');
 }
 
 /**
@@ -171,10 +182,14 @@ export function filterFiles(
  * globstar 接頭辞（アスタリスク2つ + スラッシュ）は「0階層以上のディレクトリ」を表す。
  * ここを素朴に `.*` へ置き換えると `/` が1つ以上必要になってしまい、
  * トップレベルのファイルに永久にマッチしなくなる。
+ *
+ * ワイルドカードはアスタリスクのみ。`?` は正規表現の量指定子として解釈されないよう
+ * エスケープしてリテラル扱いにする（ワイルドカード化すると除外が増える方向に働き、
+ * 必要なファイルがアップロードから漏れる）。
  */
 function globToRegExp(pattern: string): RegExp {
   const source = pattern
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/[.+^${}()|[\]\\?]/g, '\\$&')
     .split('**/')
     .map((segment) => segment.replace(/\*/g, '.*'))
     .join('(?:.*/)?');
