@@ -6,6 +6,26 @@ import {
   DEFAULT_IGNORE_PATTERNS,
 } from '../src/config.js';
 
+describe('parseWorldConfig items', () => {
+  const base = { distDir: './dist', title: 'W' };
+  const ITEM_A = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
+  const ITEM_B = '1f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
+
+  it('should parse items and drop duplicates', () => {
+    const config = parseWorldConfig(JSON.stringify({ world: { ...base, items: [ITEM_A, ITEM_B, ITEM_A] } }));
+    expect(config.items).toEqual([ITEM_A, ITEM_B]);
+  });
+
+  it('should leave items undefined when omitted', () => {
+    expect(parseWorldConfig(JSON.stringify({ world: base })).items).toBeUndefined();
+  });
+
+  it('should reject non-array or non-uuid items', () => {
+    expect(() => parseWorldConfig(JSON.stringify({ world: { ...base, items: 'x' } }))).toThrow();
+    expect(() => parseWorldConfig(JSON.stringify({ world: { ...base, items: ['not-a-uuid'] } }))).toThrow();
+  });
+});
+
 describe('parseWorldConfig', () => {
   it('should parse a world config', () => {
     const json = JSON.stringify({

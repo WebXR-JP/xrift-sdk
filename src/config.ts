@@ -20,6 +20,11 @@ export interface XriftWorldConfig {
   camera?: CameraConfig;
   permissions?: WorldPermissions;
   outputBufferType?: OutputBufferType;
+  /**
+   * ワールドに最初から置くアイテム（<Item itemId>）の id の一覧。
+   * ここに無い itemId は本番では読まれない（入室時の先読みと訪問者の解決がこの一覧から行われる）
+   */
+  items?: string[];
 }
 
 export interface XriftItemConfig {
@@ -39,6 +44,27 @@ export type XriftConfig = XriftWorldConfig | XriftItemConfig;
 export const DEFAULT_IGNORE_PATTERNS = ['__federation_shared_*.js'];
 
 // --- Functions ---
+
+const ITEM_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * world.items（最初から置くアイテムの id）を検証する。
+ * 形だけここで見る（実在と利用権はサーバーが見る）。重複は1つにまとめる
+ */
+function parseWorldItems(raw: unknown): string[] | undefined {
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw)) {
+    throw new XriftSdkError('world.items must be an array of item ids');
+  }
+  const ids: string[] = [];
+  for (const value of raw) {
+    if (typeof value !== 'string' || !ITEM_ID_PATTERN.test(value)) {
+      throw new XriftSdkError(`world.items contains an invalid item id: ${String(value)}`);
+    }
+    if (!ids.includes(value)) ids.push(value);
+  }
+  return ids;
+}
 
 function parseJson(json: string): Record<string, unknown> {
   let raw: unknown;
@@ -92,6 +118,7 @@ export function parseWorldConfig(json: string): XriftWorldConfig {
     camera: obj.camera as CameraConfig | undefined,
     permissions: obj.permissions as WorldPermissions | undefined,
     outputBufferType: obj.outputBufferType as OutputBufferType | undefined,
+    items: parseWorldItems(obj.items),
   };
 }
 

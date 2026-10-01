@@ -66,6 +66,8 @@ export class WorldsApi {
       camera: options.camera,
       permissions: options.permissions,
       outputBufferType: options.outputBufferType,
+      // 置くアイテムが変われば別の版（同じ contentHash の版を使い回すとアイテムの変更が載らない）
+      items: options.items,
     });
 
     // 3. fileSize 計算
@@ -80,6 +82,7 @@ export class WorldsApi {
       camera: options.camera,
       permissions: options.permissions,
       outputBufferType: options.outputBufferType,
+      items: options.items,
       contentHash,
       fileSize,
       files: files.map((f) => ({

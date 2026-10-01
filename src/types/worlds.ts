@@ -31,6 +31,8 @@ export interface WorldUploadUrlsRequest {
   camera?: CameraConfig;
   permissions?: WorldPermissions;
   outputBufferType?: OutputBufferType;
+  /** 最初から置くアイテムの id（xrift.json の world.items） */
+  items?: string[];
   contentHash: string;
   fileSize: number;
   files: Array<{
@@ -76,6 +78,8 @@ export interface WorldUploadOptions {
   camera?: CameraConfig;
   permissions?: WorldPermissions;
   outputBufferType?: OutputBufferType;
+  /** 最初から置くアイテムの id（xrift.json の world.items） */
+  items?: string[];
   onProgress?: (progress: UploadProgress) => void;
 }
 

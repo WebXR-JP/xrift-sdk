@@ -125,6 +125,7 @@ export async function uploadWorldFromDirectory(
     camera: wc.camera,
     permissions: wc.permissions,
     outputBufferType: wc.outputBufferType,
+    items: wc.items,
     onProgress: options.onProgress,
   });
 }
