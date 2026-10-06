@@ -13,8 +13,16 @@ const CLI_AUTH_CONFIG_FILE = join(homedir(), '.xrift', 'config.json');
 /** ブラウザ側（@xrift/world-components の DevEnvironment）が叩く中継のパス */
 export const XRIFT_DEV_PROXY_PREFIX = '/__xrift';
 
-/** 中継を許す API のパス（先頭一致）。ここに無いパスは中継しない（トークンを付けて何でも転送しない） */
-const ALLOWED_API_PATH_PREFIXES = ['/items/'];
+/**
+ * 中継を許す API のパス（完全一致）。DevEnvironment が叩く `/items/:id/resolve` だけ。
+ *
+ * 先頭一致にしない。`/items/../users/me` や `%2e%2e` は先頭一致を通ったあと fetch が URL を
+ * 正規化して `/users/me` へ届き、CLI トークン（全スコープ）付きで何でも読めてしまう。
+ * ローカル開発のページでは他人のアイテムのコードが動くので、ここが唯一の壁になる
+ */
+const ALLOWED_API_PATH_PATTERNS = [
+  /^\/items\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/resolve$/i,
+];
 
 export interface XriftDevOptions {
   /** 中継先の API（既定は XRIFT_API_URL か https://api.xrift.net） */
@@ -57,9 +65,9 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-/** 中継してよい API パスか（/items/... だけ。トークンを付けて何でも転送しない） */
+/** 中継してよい API パスか（`/items/<uuid>/resolve` だけ。トークンを付けて何でも転送しない） */
 export function isProxiedApiPath(apiPath: string): boolean {
-  return ALLOWED_API_PATH_PREFIXES.some((prefix) => apiPath.startsWith(prefix));
+  return ALLOWED_API_PATH_PATTERNS.some((pattern) => pattern.test(apiPath));
 }
 
 /**

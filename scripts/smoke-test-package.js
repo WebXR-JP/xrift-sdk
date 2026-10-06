@@ -36,7 +36,7 @@ try {
   // パッケージ名で読む＝利用者と同じ経路（exports）を通す
   const consumers = {
     'consumer.cjs': `
-      const entries = { '.': require('${name}'), './node': require('${name}/node') };
+      const entries = { '.': require('${name}'), './node': require('${name}/node'), './vite': require('${name}/vite') };
       console.log(JSON.stringify(Object.fromEntries(
         Object.entries(entries).map(([k, m]) => [k, Object.keys(m).filter((n) => n !== 'default')])
       )));
@@ -44,7 +44,8 @@ try {
     'consumer.mjs': `
       import * as root from '${name}';
       import * as node from '${name}/node';
-      const entries = { '.': root, './node': node };
+      import * as vite from '${name}/vite';
+      const entries = { '.': root, './node': node, './vite': vite };
       console.log(JSON.stringify(Object.fromEntries(
         Object.entries(entries).map(([k, m]) => [k, Object.keys(m).filter((n) => n !== 'default')])
       )));
