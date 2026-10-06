@@ -3,6 +3,11 @@ import { join, relative } from 'node:path';
 import { XriftClient } from '../client.js';
 import { parseWorldConfig, parseItemConfig, filterFiles } from '../config.js';
 import { XriftSdkError } from '../errors.js';
+import {
+  findItemIdsInBundle,
+  findUndeclaredItemIds,
+  formatUndeclaredItemsMessage,
+} from '../itemScan.js';
 import { getMimeType } from '../utils/mime.js';
 import type {
   UploadFile,
@@ -23,6 +28,11 @@ export interface UploadFromDirectoryBaseOptions {
 export interface WorldUploadFromDirectoryOptions
   extends UploadFromDirectoryBaseOptions {
   worldId?: string;
+  /**
+   * ビルド成果物の `<Item itemId>` と xrift.json の world.items の突き合わせを飛ばす。
+   * 誤検知（<Item> で使っていない id が拾われた）のときだけ使う
+   */
+  skipItemScan?: boolean;
 }
 
 export interface ItemUploadFromDirectoryOptions
@@ -110,6 +120,15 @@ export async function uploadWorldFromDirectory(
     wc.ignore,
   );
 
+  // 宣言し忘れはここで止める。本番では world.items に無いアイテムは読まれず、
+  // 入室して初めて「宣言されていない」の箱で気づくことになる
+  if (!options.skipItemScan) {
+    const undeclared = findUndeclaredItemIds(findItemIdsInBundle(uploadFiles), wc.items ?? []);
+    if (undeclared.length > 0) {
+      throw new XriftSdkError(formatUndeclaredItemsMessage(undeclared));
+    }
+  }
+
   const client = new XriftClient({
     token: options.token,
     baseUrl: options.baseUrl,
@@ -125,6 +144,7 @@ export async function uploadWorldFromDirectory(
     camera: wc.camera,
     permissions: wc.permissions,
     outputBufferType: wc.outputBufferType,
+    items: wc.items,
     onProgress: options.onProgress,
   });
 }

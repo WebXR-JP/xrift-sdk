@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.tsbuildinfo
 examples/browser/node_modules/
+examples/browser/package-lock.json
