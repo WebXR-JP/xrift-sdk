@@ -1,3 +1,5 @@
+import { UUID_PATTERN_SOURCE } from './utils/uuid.js';
+
 /**
  * ワールドのビルド成果物から `<Item itemId="...">` の id を拾う
  *
@@ -6,9 +8,14 @@
  * id を変数で組み立てているものは拾えない（そのぶんはローカル開発の中継が本番と同じ理由で断る）
  */
 
-const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-/** `itemId:"<uuid>"`・`itemId: '<uuid>'`・`itemId="<uuid>"`（JSX のまま残った場合） */
-const ITEM_ID_LITERAL = new RegExp(`\\bitemId\\s*[:=]\\s*(["'])(${UUID})\\1`, 'gi');
+/**
+ * `itemId:"<uuid>"`・`itemId: '<uuid>'`・`"itemId":"<uuid>"`（キーが引用符付きで出力されたとき）・
+ * `itemId="<uuid>"`（JSX のまま残った場合）
+ */
+const ITEM_ID_LITERAL = new RegExp(
+  `(["']?)\\bitemId\\b\\1\\s*[:=]\\s*(["'])(${UUID_PATTERN_SOURCE})\\2`,
+  'gi',
+);
 
 /** JS として扱う拡張子（この中だけを走査する。画像や wasm は読まない） */
 const SCRIPT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
@@ -17,7 +24,7 @@ const SCRIPT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
 export function findItemIdsInSource(source: string): string[] {
   const ids: string[] = [];
   for (const match of source.matchAll(ITEM_ID_LITERAL)) {
-    const id = match[2].toLowerCase();
+    const id = match[3].toLowerCase();
     if (!ids.includes(id)) ids.push(id);
   }
   return ids;
@@ -43,6 +50,11 @@ export function findItemIdsInBundle(
   return ids;
 }
 
+/** 宣言に含まれているか（大文字小文字は区別しない）。中継とアップロードで同じ規則を使う */
+export function isDeclaredItemId(itemId: string, declared: Iterable<string>): boolean {
+  return findUndeclaredItemIds([itemId], declared).length === 0;
+}
+
 /** コードにあるのに宣言に無い id（大文字小文字は区別しない） */
 export function findUndeclaredItemIds(
   found: Iterable<string>,
@@ -58,5 +70,6 @@ export function formatUndeclaredItemsMessage(undeclared: ReadonlyArray<string>):
     'コードで <Item itemId> に使っているアイテムが xrift.json の world.items に宣言されていません。',
     '本番では宣言の無いアイテムは読まれないので、world.items に追加してください:',
     ...undeclared.map((id) => `  - ${id}`),
+    '（<Item> で使っていない id が拾われた誤検知なら、skipItemScan でこの確認を飛ばせます）',
   ].join('\n');
 }

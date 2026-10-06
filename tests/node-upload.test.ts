@@ -59,6 +59,17 @@ describe('uploadWorldFromDirectory', () => {
     expect(client?.worlds.upload).toBeUndefined();
   });
 
+  it('skipItemScan なら突き合わせを飛ばしてアップロードする（誤検知の逃げ道）', async () => {
+    const itemId = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
+    await writeFile(join(tmpDir, 'xrift.json'), JSON.stringify({ world: { distDir: './dist', title: 'W' } }));
+    await mkdir(join(tmpDir, 'dist'));
+    await writeFile(join(tmpDir, 'dist', 'remoteEntry.js'), `itemId:"${itemId}"`);
+
+    await uploadWorldFromDirectory(tmpDir, { token: 't', skipItemScan: true });
+    const client = (XriftClient as any).mock.results[0].value;
+    expect(client.worlds.upload).toHaveBeenCalledTimes(1);
+  });
+
   it('world.items に宣言してあればアップロードする', async () => {
     const itemId = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
     await writeFile(

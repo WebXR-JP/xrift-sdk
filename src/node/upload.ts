@@ -28,6 +28,11 @@ export interface UploadFromDirectoryBaseOptions {
 export interface WorldUploadFromDirectoryOptions
   extends UploadFromDirectoryBaseOptions {
   worldId?: string;
+  /**
+   * ビルド成果物の `<Item itemId>` と xrift.json の world.items の突き合わせを飛ばす。
+   * 誤検知（<Item> で使っていない id が拾われた）のときだけ使う
+   */
+  skipItemScan?: boolean;
 }
 
 export interface ItemUploadFromDirectoryOptions
@@ -117,9 +122,11 @@ export async function uploadWorldFromDirectory(
 
   // 宣言し忘れはここで止める。本番では world.items に無いアイテムは読まれず、
   // 入室して初めて「宣言されていない」の箱で気づくことになる
-  const undeclared = findUndeclaredItemIds(findItemIdsInBundle(uploadFiles), wc.items ?? []);
-  if (undeclared.length > 0) {
-    throw new XriftSdkError(formatUndeclaredItemsMessage(undeclared));
+  if (!options.skipItemScan) {
+    const undeclared = findUndeclaredItemIds(findItemIdsInBundle(uploadFiles), wc.items ?? []);
+    if (undeclared.length > 0) {
+      throw new XriftSdkError(formatUndeclaredItemsMessage(undeclared));
+    }
   }
 
   const client = new XriftClient({

@@ -158,6 +158,47 @@ describe('xriftDev', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it('ワールドの設定だが壊れているときは黙って通さず、理由を 500 { code: LOAD_FAILED } で伝える', async () => {
+      const fetchMock = ok();
+      vi.stubGlobal('fetch', fetchMock);
+      const { server, handle } = createServer(root);
+      xriftDev({ token: 't' }).configureServer(server);
+
+      // items に不正な id（typo のせいでチェックが外れたまま進まないように）
+      await writeFile(
+        join(root, 'xrift.json'),
+        JSON.stringify({ world: { distDir: './dist', title: 'W', items: ['not-a-uuid'] } }),
+      );
+      let result = await handle(`/__xrift/items/${ITEM_ID}/resolve`);
+      expect(result.status).toBe(500);
+      expect(JSON.parse(result.body).code).toBe('LOAD_FAILED');
+      expect(JSON.parse(result.body).error).toContain('xrift.json');
+
+      // JSON として壊れている
+      await writeFile(join(root, 'xrift.json'), '{ "world": ');
+      result = await handle(`/__xrift/items/${ITEM_ID}/resolve`);
+      expect(result.status).toBe(500);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('/__xrift/world-items は宣言の一覧を返す（宣言を見ない状態は null）', async () => {
+      vi.stubGlobal('fetch', vi.fn());
+      const { server, handle } = createServer(root);
+      xriftDev({ token: 't' }).configureServer(server);
+
+      expect(JSON.parse((await handle('/__xrift/world-items')).body)).toEqual({ items: null });
+
+      await writeFile(join(root, 'xrift.json'), JSON.stringify({ world: { distDir: './dist', title: 'W' } }));
+      expect(JSON.parse((await handle('/__xrift/world-items')).body)).toEqual({ items: [] });
+
+      await writeFile(
+        join(root, 'xrift.json'),
+        JSON.stringify({ world: { distDir: './dist', title: 'W', items: [ITEM_ID] } }),
+      );
+      expect(JSON.parse((await handle('/__xrift/world-items')).body)).toEqual({ items: [ITEM_ID] });
+      expect((await handle('/__xrift/world-items', 'POST')).status).toBe(405);
+    });
+
     it('configPath で xrift.json の場所を変えられる', async () => {
       await writeFile(join(root, 'custom.json'), JSON.stringify({ world: { distDir: './dist', title: 'W', items: [] } }));
       vi.stubGlobal('fetch', ok());

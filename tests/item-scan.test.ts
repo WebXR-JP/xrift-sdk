@@ -4,6 +4,7 @@ import {
   findItemIdsInSource,
   findUndeclaredItemIds,
   formatUndeclaredItemsMessage,
+  isDeclaredItemId,
 } from '../src/itemScan.js';
 
 const A = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
@@ -17,6 +18,13 @@ describe('findItemIdsInSource', () => {
       `<Item placementId="x" itemId="${B.toUpperCase()}" />`,
     ].join('\n');
     expect(findItemIdsInSource(source)).toEqual([A, B]);
+  });
+
+  it('キーが引用符付きで出力されたとき（"itemId":"…"・\'itemId\': \'…\'）も拾う', () => {
+    expect(findItemIdsInSource(`{"placementId":"a","itemId":"${A}"}`)).toEqual([A]);
+    expect(findItemIdsInSource(`{ 'itemId': '${B}' }`)).toEqual([B]);
+    // 開き引用符と閉じ引用符が揃わないものは拾わない
+    expect(findItemIdsInSource(`{"itemId':"${A}"}`)).toEqual([]);
   });
 
   it('UUID でない値・別のキーは拾わない', () => {
@@ -36,6 +44,12 @@ describe('findItemIdsInBundle / findUndeclaredItemIds', () => {
     expect(found).toEqual([A, B]);
     expect(findUndeclaredItemIds(found, [A.toUpperCase()])).toEqual([B]);
     expect(findUndeclaredItemIds(found, [A, B])).toEqual([]);
+  });
+
+  it('isDeclaredItemId は宣言との突き合わせと同じ規則（大文字小文字を区別しない）', () => {
+    expect(isDeclaredItemId(A, [A.toUpperCase()])).toBe(true);
+    expect(isDeclaredItemId(A, [B])).toBe(false);
+    expect(isDeclaredItemId(A, [])).toBe(false);
   });
 
   it('メッセージに足りない id と直し方を載せる', () => {
