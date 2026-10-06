@@ -48,6 +48,32 @@ describe('uploadWorldFromDirectory', () => {
     vi.clearAllMocks();
   });
 
+  it('コードで使っている itemId が world.items に無ければアップロード前に止める', async () => {
+    const itemId = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
+    await writeFile(join(tmpDir, 'xrift.json'), JSON.stringify({ world: { distDir: './dist', title: 'W' } }));
+    await mkdir(join(tmpDir, 'dist'));
+    await writeFile(join(tmpDir, 'dist', 'remoteEntry.js'), `jsx(Item,{placementId:"a",itemId:"${itemId}"})`);
+
+    await expect(uploadWorldFromDirectory(tmpDir, { token: 't' })).rejects.toThrow(/world\.items/);
+    const client = (XriftClient as any).mock.results[0]?.value;
+    expect(client?.worlds.upload).toBeUndefined();
+  });
+
+  it('world.items に宣言してあればアップロードする', async () => {
+    const itemId = '0f1e2d3c-4b5a-4978-8a9b-0c1d2e3f4a5b';
+    await writeFile(
+      join(tmpDir, 'xrift.json'),
+      JSON.stringify({ world: { distDir: './dist', title: 'W', items: [itemId] } }),
+    );
+    await mkdir(join(tmpDir, 'dist'));
+    await writeFile(join(tmpDir, 'dist', 'remoteEntry.js'), `jsx(Item,{placementId:"a",itemId:"${itemId}"})`);
+
+    await uploadWorldFromDirectory(tmpDir, { token: 't' });
+    const client = (XriftClient as any).mock.results[0].value;
+    expect(client.worlds.upload).toHaveBeenCalledTimes(1);
+    expect(client.worlds.upload.mock.calls[0][1].items).toEqual([itemId]);
+  });
+
   it('should read xrift.json, collect files, and call worlds.upload', async () => {
     // Setup: create xrift.json and dist files
     const config = {

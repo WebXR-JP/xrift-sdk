@@ -3,6 +3,11 @@ import { join, relative } from 'node:path';
 import { XriftClient } from '../client.js';
 import { parseWorldConfig, parseItemConfig, filterFiles } from '../config.js';
 import { XriftSdkError } from '../errors.js';
+import {
+  findItemIdsInBundle,
+  findUndeclaredItemIds,
+  formatUndeclaredItemsMessage,
+} from '../itemScan.js';
 import { getMimeType } from '../utils/mime.js';
 import type {
   UploadFile,
@@ -109,6 +114,13 @@ export async function uploadWorldFromDirectory(
     wc.distDir,
     wc.ignore,
   );
+
+  // 宣言し忘れはここで止める。本番では world.items に無いアイテムは読まれず、
+  // 入室して初めて「宣言されていない」の箱で気づくことになる
+  const undeclared = findUndeclaredItemIds(findItemIdsInBundle(uploadFiles), wc.items ?? []);
+  if (undeclared.length > 0) {
+    throw new XriftSdkError(formatUndeclaredItemsMessage(undeclared));
+  }
 
   const client = new XriftClient({
     token: options.token,
