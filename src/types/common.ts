@@ -1,6 +1,10 @@
 export interface PhysicsConfig {
   gravity?: number;
   allowInfiniteJump?: boolean;
+  /** 浮遊モード（フライモード）を許可するか（デフォルト: true）。ワールド編集モード中は設定に関わらず許可される */
+  allowFly?: boolean;
+  /** この高さ（Y）を下回るとリスポーンする（デフォルト: -10） */
+  respawnThreshold?: number;
 }
 
 export interface CameraConfig {
